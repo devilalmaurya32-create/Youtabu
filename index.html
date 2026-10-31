@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909"><title>Youtabu</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" href="youtabu-logo.png">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#090909;color:#f5f5f5;font:15px Arial,sans-serif}
+header{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;border-bottom:1px solid #242424;position:sticky;top:0;background:#090909;z-index:3}
+.logo{display:flex;align-items:center;gap:9px;font-size:23px;font-weight:800;letter-spacing:-1px}.logo img{width:38px;height:38px;object-fit:cover;border-radius:9px;border:1px solid #e11d2e}.logo b{color:#f22}
+button{background:#242424;color:#fff;border:0;border-radius:22px;padding:10px 14px;font-weight:600}
+.primary{background:#e11d2e}.wrap{max-width:760px;margin:auto;padding:14px}
+.tabs{display:flex;gap:9px;overflow:auto;padding:12px 0}.tabs button{white-space:nowrap}
+.tabs button.active{background:#eee;color:#111}
+.panel{background:#151515;border:1px solid #292929;border-radius:14px;padding:14px;margin:12px 0}
+input,textarea{width:100%;background:#202020;color:white;border:1px solid #393939;border-radius:9px;padding:12px;margin:6px 0}
+video{width:100%;max-height:440px;background:#000;border-radius:12px}
+.card{background:#151515;border:1px solid #292929;border-radius:14px;padding:10px;margin:14px 0}
+.meta{color:#aaa;font-size:13px;margin:7px 0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+small{color:#aaa}.hidden{display:none}.notice{color:#ffb6bd;line-height:1.5}
+nav{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #292929;display:flex;justify-content:space-around;padding:10px 4px;z-index:4}
+nav button{background:transparent;border-radius:8px;padding:7px;font-size:12px}
+main{padding-bottom:75px}.empty{text-align:center;padding:30px 10px;color:#aaa}
+</style></head>
+<body>
+<header><div class="logo"><img src="youtabu-logo.png" alt="Youtabu logo"><span>YOU<span style="color:#f22">TABU</span></span></div><button onclick="show('account')">Account</button></header>
+<div id="splash" style="position:fixed;inset:0;background:#050505;z-index:10;display:flex;align-items:center;justify-content:center;transition:opacity .4s"><img src="youtabu-logo.png" alt="Youtabu" style="width:min(78vw,380px);border-radius:28px"></div>
+<main class="wrap">
+<div class="tabs"><button class="active" onclick="filterFeed('all',this)">All</button><button onclick="filterFeed('shorts',this)">Shorts</button><button onclick="filterFeed('music',this)">Music</button><button onclick="filterFeed('gaming',this)">Gaming</button></div>
+<section id="feed"><div class="empty">Youtabu में आपका स्वागत है!<br><small>वीडियो देखने के लिए backend कनेक्ट करें।</small></div></section>
+<section id="upload" class="panel hidden">
+<h3>वीडियो अपलोड करें</h3>
+<p class="notice">अपलोड सुविधा चालू करने के लिए नीचे Supabase सेटअप पूरा होना चाहिए।</p>
+<input id="videoTitle" placeholder="वीडियो का नाम">
+<textarea id="videoDesc" placeholder="वीडियो के बारे में लिखें"></textarea>
+<select id="videoCategory" style="width:100%;padding:12px;background:#202020;color:white;border-radius:9px"><option value="all">Category चुनें</option><option value="shorts">Shorts</option><option value="music">Music</option><option value="gaming">Gaming</option></select>
+<input id="videoFile" type="file" accept="video/*">
+<button class="primary" onclick="uploadVideo()">Upload Video</button>
+<p id="uploadStatus" class="notice"></p>
+</section>
+<section id="account" class="panel hidden">
+<h3>Youtabu Account</h3>
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<div class="actions"><button class="primary" onclick="auth('signup')">Sign up</button><button onclick="auth('login')">Login</button><button onclick="auth('logout')">Logout</button></div>
+<p id="authStatus" class="notice">Supabase config जोड़ने के बाद account चालू होगा।</p>
+</section>
+<section id="shorts" class="hidden"><h3>Shorts</h3><p class="notice">Shorts feed में category shorts वाले vertical videos दिखेंगे।</p><div id="shortsFeed"></div></section>
+<section id="admin" class="panel hidden"><h3>Admin</h3><p class="notice">सुरक्षा के लिए Admin अधिकार केवल Supabase में तय किए जाएँगे। किसी भी यूज़र को केवल ऐप में बटन दिखाकर Admin न बनाएँ।</p><p>Admin email को SQL सेटअप में अपनी email से बदलें।</p></section>
+</main>
+<nav><button onclick="show('home')">⌂<br>Home</button><button onclick="show('shorts')">▣<br>Shorts</button><button onclick="show('upload')">＋<br>Upload</button><button onclick="show('account')">♙<br>You</button><button onclick="show('admin')">⚙<br>Admin</button></nav>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY';
+const configured = SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_');
+const sb = configured ? createClient(SUPABASE_URL,SUPABASE_ANON_KEY) : null;
+window.show = (id)=>{['feed','upload','account','shorts','admin'].forEach(x=>document.getElementById(x).classList.add('hidden'));if(id==='home')document.getElementById('feed').classList.remove('hidden');else document.getElementById(id).classList.remove('hidden');};
+window.filterFeed = (cat,btn)=>{document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');loadVideos(cat);};
+async function loadVideos(cat='all'){
+ const feed=document.getElementById('feed'); if(!sb){feed.innerHTML='<div class="empty">Backend अभी कनेक्ट नहीं है। README में दिए setup के बाद live videos यहाँ दिखेंगे।</div>';return;}
+ let q=sb.from('videos').select('id,title,description,category,video_url,created_at,user_id,views').eq('status','published').order('created_at',{ascending:false});
+ if(cat!=='all')q=q.eq('category',cat);
+ const {data,error}=await q; if(error){feed.textContent='Videos लोड नहीं हुए: '+error.message;return;}
+ feed.innerHTML=data?.length?'':'<div class="empty">अभी कोई वीडियो नहीं है। पहला वीडियो अपलोड करें।</div>';
+ for(const v of data||[]){const el=document.createElement('article');el.className='card';el.innerHTML=`<video controls playsinline preload="metadata" src="${v.video_url}"></video><h3></h3><div class="meta"></div><p></p><div class="actions"><button data-like>♡ Like</button><button data-comment>Comment</button><button data-share>Share</button><small>${v.views||0} views</small></div><div class="commentbox"></div>`;el.querySelector('h3').textContent=v.title;el.querySelector('.meta').textContent=(v.category||'video')+' · '+new Date(v.created_at).toLocaleDateString();el.querySelector('p').textContent=v.description||'';el.querySelector('[data-like]').onclick=()=>likeVideo(v.id);el.querySelector('[data-comment]').onclick=()=>commentUI(el,v.id);el.querySelector('[data-share]').onclick=()=>navigator.share?.({title:v.title,url:location.href+'#'+v.id});feed.append(el);}
+}
+async function likeVideo(id){if(!sb)return;const {data:{user}}=await sb.auth.getUser();if(!user){alert('Like करने के लिए Login करें');return;}const {error}=await sb.from('likes').insert({video_id:id,user_id:user.id});if(error)alert(error.message);else alert('Liked!');}
+function commentUI(el,id){const box=el.querySelector('.commentbox');box.innerHTML='<input placeholder="अपना comment लिखें"><button>Send</button>';box.querySelector('button').onclick=async()=>{const {data:{user}}=await sb.auth.getUser();if(!user){alert('पहले Login करें');return;}const body=box.querySelector('input').value.trim();if(!body)return;const {error}=await sb.from('comments').insert({video_id:id,user_id:user.id,body});alert(error?'Comment नहीं हुआ': 'Comment पोस्ट हो गया');box.innerHTML='';};}
+window.uploadVideo=async()=>{const status=document.getElementById('uploadStatus');if(!sb){status.textContent='पहले Supabase URL और anon key जोड़ें।';return;}const {data:{user}}=await sb.auth.getUser();if(!user){status.textContent='पहले Login करें।';return;}const file=document.getElementById('videoFile').files[0];const title=document.getElementById('videoTitle').value.trim();if(!file||!title){status.textContent='वीडियो और title दोनों जरूरी हैं।';return;}if(file.size>200*1024*1024){status.textContent='इस शुरुआती सेटअप में 200 MB से छोटी वीडियो चुनें।';return;}status.textContent='अपलोड हो रहा है…';const path=user.id+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');let {error}=await sb.storage.from('videos').upload(path,file,{upsert:false,contentType:file.type});if(error){status.textContent=error.message;return;}const {data:{publicUrl}}=sb.storage.from('videos').getPublicUrl(path);const row={user_id:user.id,title,description:document.getElementById('videoDesc').value,category:document.getElementById('videoCategory').value,video_url:publicUrl,status:'published'};({error}=await sb.from('videos').insert(row));status.textContent=error?'वीडियो रिकॉर्ड सेव नहीं हुआ: '+error.message:'वीडियो अपलोड हो गया!';if(!error){loadVideos();show('home');}};
+window.auth=async(mode)=>{const out=document.getElementById('authStatus');if(!sb){out.textContent='पहले Supabase config जोड़ें।';return;}let result;if(mode==='signup')result=await sb.auth.signUp({email:email.value,password:password.value});else if(mode==='login')result=await sb.auth.signInWithPassword({email:email.value,password:password.value});else result=await sb.auth.signOut();out.textContent=result.error?result.error.message:(mode==='logout'?'Logout हो गया':'सफल!');};
+loadVideos();setTimeout(()=>{const sp=document.getElementById('splash');if(sp){sp.style.opacity='0';setTimeout(()=>sp.remove(),450);}},1300);if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script></body></html>
